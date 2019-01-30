@@ -18,6 +18,9 @@ generate_archive <- function(start_year=2017, save=TRUE, ...){
   #### PQ DATA ####
 
   current_year_PQ_IDs <- dplyr::as_tibble(jsonlite::fromJSON(txt=url(PQ_urls[length(PQ_urls)]), simplifyDataFrame = TRUE))$EventID
+  if(save==TRUE){
+    saveRDS(current_year_PQ_IDs, "recentPQ_IDs.rds")
+  }
   
   PQ_data <- dplyr::tibble()
   for(PQ_url in PQ_urls){
@@ -115,5 +118,17 @@ train <- function(save=TRUE){
   return(completed_PQs)
 }
 
+compare <- function(){
+  url <- paste0("https://data.parliament.scot/api/motionsquestionsanswersquestions?year=", as.integer(format(Sys.time(), "%Y")))
+  currentPQ_IDs <- dplyr::as_tibble(jsonlite::fromJSON(txt=url(url), simplifyDataFrame = TRUE))$EventID
+  
+  recentPQ_IDs <- read_rds("recentPQ_IDs.rds")
+  
+  newPQ_IDs <- currentPQ_IDs %>%
+    filter()  #  can't do a==b comparison as a will be longer than b
+}
+  
+
 df <- generate_archive()
 train()
+
