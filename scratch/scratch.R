@@ -108,20 +108,20 @@ test_email <- mime(
 send_message(test_email)  # fails auth step due to curl/HTTPS proxy faff
 
 
-# installing from beta repo
-# install.packages("RDCOMClient", repos = "http://www.omegahat.net/R") 
-library(RDCOMClient)
-## init com api
-OutApp <- COMCreate("Outlook.Application")
-## create an email 
-outMail = OutApp$CreateItem(0)
-## configure  email parameter 
-outMail[["To"]] = "j.boaby@gmail.com"
-outMail[["subject"]] = "some subject"
-outMail[["body"]] = "some body"
-## send it                     
-outMail$Send()  
-# works, but will it work from e.g. server environment?
+# # installing from beta repo
+# # install.packages("RDCOMClient", repos = "http://www.omegahat.net/R") 
+# library(RDCOMClient)
+# ## init com api
+# OutApp <- COMCreate("Outlook.Application")
+# ## create an email 
+# outMail = OutApp$CreateItem(0)
+# ## configure  email parameter 
+# outMail[["To"]] = "j.boaby@gmail.com"
+# outMail[["subject"]] = "some subject"
+# outMail[["body"]] = "some body"
+# ## send it                     
+# outMail$Send()  
+# # works, but will it work from e.g. server environment?
 
 
 

@@ -2,10 +2,10 @@ library(tidyverse)
 library(jsonlite)
 library(lubridate)
 
-generate_archive <- function(...){
+generate_archive <- function(start_year=2017, save=TRUE, ...){
   
   current_year <- as.integer(format(Sys.time(), "%Y"))
-  years <- as.character(seq(from=2018, to=current_year))
+  years <- as.character(seq(from=start_year, to=current_year))
   
   #### URLS ####
   event_subtypes_url <- "https://data.parliament.scot/api/motionsquestionsanswerseventsubtypes/json"
@@ -58,7 +58,8 @@ generate_archive <- function(...){
   constituency_data <- dplyr::as_tibble(jsonlite::fromJSON(txt=url(constituency_url), simplifyDataFrame = TRUE))
   
   constituency_df <- constituency_data %>%
-    mutate_at(vars(contains("Date")), ~as_datetime(.))  #  convert date/time columns from char to datetime
+    mutate_at(vars(contains("Date")), ~as_datetime(.)) %>%  #  convert date/time columns from char to datetime
+    select(-RegionID)
   
   
   #### MSP DATA ####  
@@ -96,5 +97,23 @@ generate_archive <- function(...){
     
     arrange(ApprovedDate)
   
+  if(save==TRUE){
+    saveRDS(df, "archive.rds")}
+  
   return(df)
 }
+
+train <- function(save=TRUE){
+  # read in list of PQs completed by team (drop rows that are blank or NA)
+  completed_PQs <- readr::read_delim(file="QI_PQs.txt", delim="\r", col_names="PQ", col_type="c")  %>%
+    filter(PQ != "" & !is.na(PQ))
+  completed_PQs$team <- "QI"  #  append team name
+  
+  if(save==TRUE){
+    saveRDS(completed_PQs, "train.rds")}
+  
+  return(completed_PQs)
+}
+
+df <- generate_archive()
+train()
