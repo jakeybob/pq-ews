@@ -4,3 +4,4 @@
 .Ruserdata
 packrat/lib*/
 *.rds
+pq-ews.Rproj # server version
