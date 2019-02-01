@@ -124,11 +124,14 @@ compare <- function(){
   
   recentPQ_IDs <- read_rds("recentPQ_IDs.rds")
   
-  newPQ_IDs <- currentPQ_IDs %>%
-    filter()  #  can't do a==b comparison as a will be longer than b
+  new_PQ_IDs <- currentPQ_IDs[which(!(currentPQ_IDs %in% recentPQ_IDs))]
+  
+  print(paste("New PQs are:", toString(new_PQ_IDs)))
+  # newPQ_IDs <- currentPQ_IDs %>%
+  #   filter()  #  can't do a==b comparison as a will be longer than b
 }
   
 
-df <- generate_archive()
-train()
+#df <- generate_archive()
+#train()
 
