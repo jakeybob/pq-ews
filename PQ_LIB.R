@@ -1,8 +1,10 @@
 library(tidyverse)
 library(jsonlite)
 library(lubridate)
+library(rvest)
+library(xml2)
 
-generate_archive <- function(start_year=2017, save=TRUE, ...){
+generate_archive_opendata <- function(start_year=2017, save=TRUE, ...){
   
   current_year <- as.integer(format(Sys.time(), "%Y"))
   years <- as.character(seq(from=start_year, to=current_year))
@@ -101,9 +103,80 @@ generate_archive <- function(start_year=2017, save=TRUE, ...){
     arrange(ApprovedDate)
   
   if(save==TRUE){
-    saveRDS(df, "archive.rds")}
+    saveRDS(df, "opendata_archive.rds")}
   
   return(df)
+}
+
+generate_archive_scrape <- function(num_results=1000, save=TRUE, ...){
+  # NOTE: this method does not seem to return all data from past PQs!
+  # e.g. setting num_results = 10000 shows that previous years drop sharply in the return data....
+  # Hence, better to use this for recent comparison purposes, and use opendata API to generate long-term
+  # archive, keeping in mind that it is not completley up to date.
+  
+  # OR, there may be another url/search scheme that reliably returns long term data to scrape?
+  
+  url <- paste0("http://www.parliament.scot/parliamentarybusiness/28877.aspx?SearchType=Advance&DateTo=01/02/2019%2023:59:59&SortBy=DateSubmitted&Answers=OnlyQuestionAwaitingAnswer&SearchFor=AllQuestions&ResultsPerPage=", as.character(num_results))
+  regex_ID_selector <- "(?<=\\_ctl00\\_ctl)(.*?)(?=\\_\\_)" # to pull out a unique ID for each search result
+  
+  tempFileName <- paste0(".tmp", paste0(sample(1e10, 1)))
+  download.file(url, destfile = tempFileName, quiet=TRUE) # necessary to avoid proxy issues
+  webpage <- read_html(tempFileName)
+  file.remove(tempFileName)
+  
+  #### CURRENT STATUS DATA ####
+  current_status <- html_nodes(webpage, "#MAQA_Search_gvResults_ctl00 div div span") # expected dates and search result IDs
+  current_status_IDs <- str_extract(html_attr(current_status, name="id")[c(TRUE, FALSE)], regex_ID_selector)
+  current_status_text <- paste0(html_text(current_status)[c(TRUE, FALSE)], html_text(current_status)[c(FALSE, TRUE)])
+  
+  current_status_df <- tibble(searchID = current_status_IDs, current_status_text = current_status_text)
+  
+  # if "expected answer date" string detected, extract expected answer date and convert to date
+  current_status_df$expected_answer_date <- if_else(str_detect(current_status_df$current_status_text, "Expected Answer date"),
+                                                    str_extract(current_status_df$current_status_text, "(?<=Expected Answer date ).*$"),
+                                                    "")
+  current_status_df$expected_answer_date <- dmy(current_status_df$expected_answer_date)
+  
+  
+  #### QUESTION DETAILS ####
+  
+  question_details <- html_nodes(webpage, "strong span") # PQ S5W ref, MSP name, party, date lodged etc, plus search result ID
+  question_details_IDs <- str_extract(html_attr(question_details, name="id"), regex_ID_selector)
+  question_details_text <- str_split_fixed(html_text(question_details), ", ", n=4)
+  question_details_PQID <- str_extract(question_details_text[,1], "(?<=Question  )(.*?)(?=:)")
+  question_details_MSPname <- str_split(question_details_text[,1], ": ", simplify = TRUE)[,2]
+  
+  question_details_df <- tibble(searchID = question_details_IDs,
+                                PQID = question_details_PQID,
+                                MSPname = question_details_MSPname,
+                                area = question_details_text[,2],
+                                party = question_details_text[,3],
+                                date = dmy(question_details_text[,4]),
+                                question_details_text = html_text(question_details))
+  
+  
+  #### QUESTION TEXT ####
+  
+  question_text_searchID <- question_details_df$searchID
+  css_selector <- str_flatten(paste0("#MAQA_Search_gvResults_ctl00_ctl", question_text_searchID, "__lblQuestionTitle"), collapse=", ")
+  question_text_text <- html_text(html_nodes(webpage, css_selector))
+  
+  question_text_df <- tibble(searchID = question_text_searchID,
+                             question_text = question_text_text)
+  
+  
+  #### MERGE ####
+  
+  df <- current_status_df %>%
+    inner_join(question_details_df, by="searchID") %>%
+    inner_join(question_text_df, by="searchID") %>%
+    select(-c(current_status_text, question_details_text))
+  
+  if(save==TRUE){
+    saveRDS(df, "scrape_archive.rds")}
+  
+  return(df)
+  
 }
 
 train <- function(save=TRUE){
@@ -118,7 +191,7 @@ train <- function(save=TRUE){
   return(completed_PQs)
 }
 
-compare <- function(){
+compare_opendata <- function(){
   url <- paste0("https://data.parliament.scot/api/motionsquestionsanswersquestions?year=", as.integer(format(Sys.time(), "%Y")))
   currentPQ_IDs <- dplyr::as_tibble(jsonlite::fromJSON(txt=url(url), simplifyDataFrame = TRUE))$EventID
   
@@ -130,8 +203,25 @@ compare <- function(){
   # newPQ_IDs <- currentPQ_IDs %>%
   #   filter()  #  can't do a==b comparison as a will be longer than b
 }
+
+compare_scrape <- function(num_results = 100, ...){
+
+  currentPQ_IDs <- generate_archive_scrape(num_results=num_results, save=FALSE)$PQID
   
+  recentPQ_IDs <- read_rds("scrape_archive.rds")$PQID
+  
+  new_PQ_IDs <- currentPQ_IDs[which(!(currentPQ_IDs %in% recentPQ_IDs))]
+  
+  print(paste("Current PQ IDs are:", toString(currentPQ_IDs)))
+  print(paste("Recent PQ IDs are:", toString(recentPQ_IDs)))
+  print(paste("New PQs are:", toString(new_PQ_IDs)))
 
-#df <- generate_archive()
-#train()
+}
 
+
+#### CODE ####
+# generate_archive_opendata()
+# generate_archive_scrape(num_results = 1000, save=TRUE)
+# currentPQ_IDs <- generate_archive_webscrape(num_results=10, save=FALSE)$PQID
+
+compare_scrape()

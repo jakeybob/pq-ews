@@ -3,11 +3,10 @@ library(jsonlite)
 library(lubridate)
 library(rvest)
 library(xml2)
-library(selectr)
 
-num_results = 10
+num_results = 200
 url <- paste0("http://www.parliament.scot/parliamentarybusiness/28877.aspx?SearchType=Advance&DateTo=01/02/2019%2023:59:59&SortBy=DateSubmitted&Answers=OnlyQuestionAwaitingAnswer&SearchFor=AllQuestions&ResultsPerPage=", as.character(num_results))
-regex_ID_selector <- "(?<=\\_ctl00\\_ctl)(.*?)(?=\\_\\_)" # to pull out a unique ID for the search result in the page
+regex_ID_selector <- "(?<=\\_ctl00\\_ctl)(.*?)(?=\\_\\_)" # to pull out a unique ID for each search result
 
 tempFileName <- paste0(".tmp", paste0(sample(1e10, 1)))
 download.file(url, destfile = tempFileName, quiet=TRUE) # necessary to avoid proxy issues
@@ -20,13 +19,14 @@ current_status_IDs <- str_extract(html_attr(current_status, name="id")[c(TRUE, F
 current_status_text <- paste0(html_text(current_status)[c(TRUE, FALSE)], html_text(current_status)[c(FALSE, TRUE)])
 
 # create tibble of related data
-current_status_df <- tibble(search_ID = current_status_IDs, current_status_text = current_status_text)
+current_status_df <- tibble(searchID = current_status_IDs, current_status_text = current_status_text)
 
 # if "expected answer date" string detected, extract expected answer date and convert to date
 current_status_df$expected_answer_date <- if_else(str_detect(current_status_df$current_status_text, "Expected Answer date"),
                                                   str_extract(current_status_df$current_status_text, "(?<=Expected Answer date ).*$"),
                                                   "")
 current_status_df$expected_answer_date <- dmy(current_status_df$expected_answer_date)
+
 
 
 #### question details bumf ####
@@ -46,18 +46,21 @@ question_details_df <- tibble(searchID = question_details_IDs,
                               question_details_text = html_text(question_details))
 
 
+#### question text bumf ####
+
+question_text_searchID <- question_details_df$searchID
+css_selector <- str_flatten(paste0("#MAQA_Search_gvResults_ctl00_ctl", question_text_searchID, "__lblQuestionTitle"), collapse=", ")
+question_text_text <- html_text(html_nodes(webpage, css_selector))
+
+question_text_df <- tibble(searchID = question_text_searchID,
+                            question_text = question_text_text)
 
 
+#### merge ####
 
+df <- current_status_df %>%
+  inner_join(question_details_df, by="searchID") %>%
+  inner_join(question_text_df, by="searchID") %>%
+  select(-c(current_status_text, question_details_text))
 
-
-
-#### ####
-question_text <- html_nodes(webpage, "#MAQA_Search_gvResults_ctl00 p") # question text, no search result ID though
-question_text2 <- html_nodes(webpage, "#MAQA_Search_gvResults_ctl00_ctl04__pnlQuestionHeader , #MAQA_Search_gvResults_ctl00_ctl06__pnlQuestionHeader, #MAQA_Search_gvResults_ctl00_ctl08__lblQuestionTitle p, #MAQA_Search_gvResults_ctl00_ctl08__pnlQuestionHeader, #MAQA_Search_gvResults_ctl00_ctl06__lblQuestionTitle p, #MAQA_Search_gvResults_ctl00_ctl04__lblQuestionTitle p") # question text, no search result ID though
-
-html_attr(question_text2, name="id")
-html_attrs(question_text)
-html_name(question_text2)
-html_text(question_text2)
-# df <- html_table(html_nodes(webpage, "table"), fill=T)
+saveRDS(df, "recentPQs.rds")
