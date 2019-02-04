@@ -116,7 +116,7 @@ generate_archive_scrape <- function(num_results=1000, save=TRUE, ...){
   
   # OR, there may be another url/search scheme that reliably returns long term data to scrape?
   
-  url <- paste0("http://www.parliament.scot/parliamentarybusiness/28877.aspx?SearchType=Advance&DateTo=01/02/2019%2023:59:59&SortBy=DateSubmitted&Answers=OnlyQuestionAwaitingAnswer&SearchFor=AllQuestions&ResultsPerPage=", as.character(num_results))
+  url <- paste0("http://www.parliament.scot/parliamentarybusiness/28877.aspx?SearchType=Advance&DateTo=04/02/2019%2023:59:59&SortBy=DateSubmitted&Answers=OnlyQuestionAwaitingAnswer&SearchFor=AllQuestions&ResultsPerPage=", as.character(num_results))
   regex_ID_selector <- "(?<=\\_ctl00\\_ctl)(.*?)(?=\\_\\_)" # to pull out a unique ID for each search result
   
   tempFileName <- paste0(".tmp", paste0(sample(1e10, 1)))
@@ -225,3 +225,6 @@ compare_scrape <- function(num_results = 100, ...){
 # currentPQ_IDs <- generate_archive_webscrape(num_results=10, save=FALSE)$PQID
 
 compare_scrape()
+
+# maybe try this url below, as should return most recent 6 months, rather than be tied to current date hardcoded in url
+# "http://www.parliament.scot/parliamentarybusiness/28877.aspx?SearchType=Advance&DateChoice=3&SortBy=DateSubmitted&Answers=All&SearchFor=AllQuestions&ResultsPerPage=100"
