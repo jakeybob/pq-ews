@@ -7,17 +7,57 @@ library(selectr)
 
 num_results = 10
 url <- paste0("http://www.parliament.scot/parliamentarybusiness/28877.aspx?SearchType=Advance&DateTo=01/02/2019%2023:59:59&SortBy=DateSubmitted&Answers=OnlyQuestionAwaitingAnswer&SearchFor=AllQuestions&ResultsPerPage=", as.character(num_results))
+regex_ID_selector <- "(?<=\\_ctl00\\_ctl)(.*?)(?=\\_\\_)" # to pull out a unique ID for the search result in the page
 
 tempFileName <- paste0(".tmp", paste0(sample(1e10, 1)))
 download.file(url, destfile = tempFileName, quiet=TRUE) # necessary to avoid proxy issues
 webpage <- read_html(tempFileName)
 file.remove(tempFileName)
 
-# g <- html_table(html_nodes(webpage, "table"), fill=T)
+#### current status bumf ####
+current_status <- html_nodes(webpage, "#MAQA_Search_gvResults_ctl00 div div span") # expected dates and search result IDs
+current_status_IDs <- str_extract(html_attr(current_status, name="id")[c(TRUE, FALSE)], regex_ID_selector)
+current_status_text <- paste0(html_text(current_status)[c(TRUE, FALSE)], html_text(current_status)[c(FALSE, TRUE)])
 
-expected_answer_dates <- html_nodes(webpage, "#MAQA_Search_gvResults_ctl00 div div span") # expected dates and search result IDs
+# create tibble of related data
+current_status_df <- tibble(search_ID = current_status_IDs, current_status_text = current_status_text)
+
+# if "expected answer date" string detected, extract expected answer date and convert to date
+current_status_df$expected_answer_date <- if_else(str_detect(current_status_df$current_status_text, "Expected Answer date"),
+                                                  str_extract(current_status_df$current_status_text, "(?<=Expected Answer date ).*$"),
+                                                  "")
+current_status_df$expected_answer_date <- dmy(current_status_df$expected_answer_date)
+
+
+#### question details bumf ####
 
 question_details <- html_nodes(webpage, "strong span") # PQ S5W ref, MSP name, party, date lodged etc, plus search result ID
+question_details_IDs <- str_extract(html_attr(question_details, name="id"), regex_ID_selector)
+question_details_text <- str_split_fixed(html_text(question_details), ", ", n=4)
+question_details_PQID <- str_extract(question_details_text[,1], "(?<=Question  )(.*?)(?=:)")
+question_details_MSPname <- str_split(question_details_text[,1], ": ", simplify = TRUE)[,2]
 
+question_details_df <- tibble(searchID = question_details_IDs,
+                              PQID = question_details_PQID,
+                              MSPname = question_details_MSPname,
+                              area = question_details_text[,2],
+                              party = question_details_text[,3],
+                              date = dmy(question_details_text[,4]),
+                              question_details_text = html_text(question_details))
+
+
+
+
+
+
+
+
+#### ####
 question_text <- html_nodes(webpage, "#MAQA_Search_gvResults_ctl00 p") # question text, no search result ID though
 question_text2 <- html_nodes(webpage, "#MAQA_Search_gvResults_ctl00_ctl04__pnlQuestionHeader , #MAQA_Search_gvResults_ctl00_ctl06__pnlQuestionHeader, #MAQA_Search_gvResults_ctl00_ctl08__lblQuestionTitle p, #MAQA_Search_gvResults_ctl00_ctl08__pnlQuestionHeader, #MAQA_Search_gvResults_ctl00_ctl06__lblQuestionTitle p, #MAQA_Search_gvResults_ctl00_ctl04__lblQuestionTitle p") # question text, no search result ID though
+
+html_attr(question_text2, name="id")
+html_attrs(question_text)
+html_name(question_text2)
+html_text(question_text2)
+# df <- html_table(html_nodes(webpage, "table"), fill=T)
