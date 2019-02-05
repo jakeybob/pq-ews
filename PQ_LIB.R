@@ -205,7 +205,8 @@ generate_archive_scrape <- function(num_results=1000, save=TRUE, ...){
   df <- current_status_df %>%
     inner_join(question_details_df, by="searchID") %>%
     inner_join(question_text_df, by="searchID") %>%
-    select(-c(current_status_text, question_details_text))
+    select(-c(current_status_text, question_details_text)) %>%
+    filter(str_detect(question_text, "Question to be taken in chamber")==FALSE)
   
   if(save==TRUE){
     saveRDS(df, "scrape_archive.rds")}
