@@ -108,6 +108,31 @@ generate_archive_opendata <- function(start_year=2017, save=TRUE, ...){
   return(df)
 }
 
+compare_opendata <- function(){
+  url <- paste0("https://data.parliament.scot/api/motionsquestionsanswersquestions?year=", as.integer(format(Sys.time(), "%Y")))
+  currentPQ_IDs <- dplyr::as_tibble(jsonlite::fromJSON(txt=url(url), simplifyDataFrame = TRUE))$EventID
+  
+  recentPQ_IDs <- read_rds("recentPQ_IDs.rds")
+  
+  new_PQ_IDs <- currentPQ_IDs[which(!(currentPQ_IDs %in% recentPQ_IDs))]
+  
+  print(paste("New PQs are:", toString(new_PQ_IDs)))
+  # newPQ_IDs <- currentPQ_IDs %>%
+  #   filter()  #  can't do a==b comparison as a will be longer than b
+}
+
+train <- function(save=TRUE){
+  # read in list of PQs completed by team (drop rows that are blank or NA)
+  completed_PQs <- readr::read_delim(file="QI_PQs.txt", delim="\r", col_names="PQ", col_type="c")  %>%
+    filter(PQ != "" & !is.na(PQ))
+  completed_PQs$team <- "QI"  #  append team name
+  
+  if(save==TRUE){
+    saveRDS(completed_PQs, "train.rds")}
+  
+  return(completed_PQs)
+}
+
 generate_archive_scrape <- function(num_results=1000, save=TRUE, ...){
   # NOTE: this method does not seem to return all data from past PQs!
   # e.g. setting num_results = 10000 shows that previous years drop sharply in the return data....
@@ -116,7 +141,17 @@ generate_archive_scrape <- function(num_results=1000, save=TRUE, ...){
   
   # OR, there may be another url/search scheme that reliably returns long term data to scrape?
   
-  url <- paste0("http://www.parliament.scot/parliamentarybusiness/28877.aspx?SearchType=Advance&DateTo=04/02/2019%2023:59:59&SortBy=DateSubmitted&Answers=OnlyQuestionAwaitingAnswer&SearchFor=AllQuestions&ResultsPerPage=", as.character(num_results))
+  current_date <- format(today(), "%d/%m/%Y")
+  
+  # url <- paste0("http://www.parliament.scot/parliamentarybusiness/28877.aspx?SearchType=Advance&DateTo=04/02/2019%2023:59:59&SortBy=DateSubmitted&Answers=OnlyQuestionAwaitingAnswer&SearchFor=AllQuestions&ResultsPerPage=", as.character(num_results))
+  # url <- paste0("http://www.parliament.scot/parliamentarybusiness/28877.aspx?SearchType=Advance&DateChoice=3&SortBy=DateSubmitted&Answers=All&SearchFor=AllQuestions&ResultsPerPage=", as.character(num_results))
+  
+  url <- paste0("http://www.parliament.scot/parliamentarybusiness/28877.aspx?SearchType=Advance&DateTo=",
+                current_date,
+                "%2023:59:59&SortBy=DateSubmitted&Answers=OnlyQuestionAwaitingAnswer&SearchFor=AllQuestions&ResultsPerPage=", 
+                as.character(num_results))
+  
+  
   regex_ID_selector <- "(?<=\\_ctl00\\_ctl)(.*?)(?=\\_\\_)" # to pull out a unique ID for each search result
   
   tempFileName <- paste0(".tmp", paste0(sample(1e10, 1)))
@@ -179,52 +214,36 @@ generate_archive_scrape <- function(num_results=1000, save=TRUE, ...){
   
 }
 
-train <- function(save=TRUE){
-  # read in list of PQs completed by team (drop rows that are blank or NA)
-  completed_PQs <- readr::read_delim(file="QI_PQs.txt", delim="\r", col_names="PQ", col_type="c")  %>%
-    filter(PQ != "" & !is.na(PQ))
-  completed_PQs$team <- "QI"  #  append team name
+compare_scrape <- function(num_results = 100, update_recent = FALSE, ...){
   
-  if(save==TRUE){
-    saveRDS(completed_PQs, "train.rds")}
-  
-  return(completed_PQs)
-}
+  currentPQs_df <- generate_archive_scrape(num_results=num_results, save=FALSE)
 
-compare_opendata <- function(){
-  url <- paste0("https://data.parliament.scot/api/motionsquestionsanswersquestions?year=", as.integer(format(Sys.time(), "%Y")))
-  currentPQ_IDs <- dplyr::as_tibble(jsonlite::fromJSON(txt=url(url), simplifyDataFrame = TRUE))$EventID
-  
-  recentPQ_IDs <- read_rds("recentPQ_IDs.rds")
-  
-  new_PQ_IDs <- currentPQ_IDs[which(!(currentPQ_IDs %in% recentPQ_IDs))]
-  
-  print(paste("New PQs are:", toString(new_PQ_IDs)))
-  # newPQ_IDs <- currentPQ_IDs %>%
-  #   filter()  #  can't do a==b comparison as a will be longer than b
-}
-
-compare_scrape <- function(num_results = 100, ...){
-
-  currentPQ_IDs <- generate_archive_scrape(num_results=num_results, save=FALSE)$PQID
+  currentPQ_IDs <- currentPQs_df$PQID
   
   recentPQ_IDs <- read_rds("scrape_archive.rds")$PQID
   
   new_PQ_IDs <- currentPQ_IDs[which(!(currentPQ_IDs %in% recentPQ_IDs))]
   
-  print(paste("Current PQ IDs are:", toString(currentPQ_IDs)))
-  print(paste("Recent PQ IDs are:", toString(recentPQ_IDs)))
-  print(paste("New PQs are:", toString(new_PQ_IDs)))
+  if(length(new_PQ_IDs) == 0){
+    print("No new PQs since last refresh.")
+  }
+  else{
+    print(paste("New PQs are:", toString(new_PQ_IDs)))
+  }
+  
+  
+  if(update_recent==TRUE){
+    generate_archive_scrape(save=TRUE)
+  }
+  
+  return(currentPQs_df)
 
 }
 
 
 #### CODE ####
 # generate_archive_opendata()
-# generate_archive_scrape(num_results = 1000, save=TRUE)
+df <- generate_archive_scrape(num_results = 1000, save=TRUE)
 # currentPQ_IDs <- generate_archive_webscrape(num_results=10, save=FALSE)$PQID
 
-compare_scrape()
-
-# maybe try this url below, as should return most recent 6 months, rather than be tied to current date hardcoded in url
-# "http://www.parliament.scot/parliamentarybusiness/28877.aspx?SearchType=Advance&DateChoice=3&SortBy=DateSubmitted&Answers=All&SearchFor=AllQuestions&ResultsPerPage=100"
+current <- compare_scrape()
