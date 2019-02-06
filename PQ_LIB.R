@@ -3,6 +3,10 @@ library(jsonlite)
 library(lubridate)
 library(rvest)
 library(xml2)
+library(gmailr)
+
+default_email_from <- "j.boaby@gmail.com"
+default_email_to <- "bob.taylor@nhs.net"
 
 generate_archive_opendata <- function(start_year=2017, save=TRUE, ...){
   
@@ -241,6 +245,18 @@ compare_scrape <- function(num_results = 100, update_recent = FALSE, ...){
 
 }
 
+send_email <- function(message, from=default_email_from, to=default_email_to, subject="",...){
+  
+  use_secret_file("pq-ews.json")
+  
+  email <- mime(From = from,
+                To = to,
+                Subject = subject) %>%
+    html_body(message)
+
+  send_message(email)
+}
+
 
 #### CODE ####
 # generate_archive_opendata()
@@ -248,3 +264,26 @@ compare_scrape <- function(num_results = 100, update_recent = FALSE, ...){
 # currentPQ_IDs <- generate_archive_webscrape(num_results=10, save=FALSE)$PQID
 
 current <- compare_scrape()
+
+
+PQs_to_send <- current %>%
+  filter(PQID == "S5W-21474")
+
+message <- character()
+for(PQref in PQs_to_send$PQID){
+  PQ <- filter(PQs_to_send, PQs_to_send$PQID==PQref)
+  
+  text_PQID <- paste0("<h2>", PQref,"</h2>")
+  text_expected_date <- paste0("<strong>", PQ$expected_answer_date, "</strong>")
+  text_date <- paste0("<strong>", PQ$date, "</strong>")
+  text_MSP_details <- paste0("<body>", 
+                             PQ$MSPname, ", ", 
+                             PQ$area, ", ",
+                             PQ$party, "</body>")
+  text_question <- paste0(PQ$question_text)
+  
+  message <- paste0(message, "<p>", text_PQID, text_expected_date, "<br>", text_date, "<br>", text_MSP_details, 
+                    text_question, "</p><hr><br><br>")
+}
+
+send_email(subject="test", message = message)
