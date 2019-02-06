@@ -167,8 +167,8 @@ generate_archive_scrape <- function(num_results=1000, save=TRUE, ...){
   current_status_df <- tibble(searchID = current_status_IDs, current_status_text = current_status_text)
   
   # if "expected answer date" string detected, extract expected answer date and convert to date
-  current_status_df$expected_answer_date <- if_else(str_detect(current_status_df$current_status_text, "Expected Answer date"),
-                                                    str_extract(current_status_df$current_status_text, "(?<=Expected Answer date ).*$"),
+  current_status_df$expected_answer_date <- if_else(str_detect(str_to_upper(current_status_df$current_status_text), "EXPECTED ANSWER DATE"),
+                                                    str_extract(str_to_upper(current_status_df$current_status_text), "(?<=EXPECTED ANSWER DATE ).*$"),
                                                     "")
   current_status_df$expected_answer_date <- dmy(current_status_df$expected_answer_date)
   
@@ -244,7 +244,7 @@ compare_scrape <- function(num_results = 100, update_recent = FALSE, ...){
 
 #### CODE ####
 # generate_archive_opendata()
-df <- generate_archive_scrape(num_results = 1000, save=TRUE)
+# df <- generate_archive_scrape(num_results = 1000, save=TRUE)
 # currentPQ_IDs <- generate_archive_webscrape(num_results=10, save=FALSE)$PQID
 
 current <- compare_scrape()

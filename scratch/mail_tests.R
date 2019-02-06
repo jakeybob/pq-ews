@@ -24,14 +24,12 @@
 #           send = TRUE)
 
 library(gmailr)
-## edit line below to reflect YOUR json credential filename
 use_secret_file("pq-ews.json")
 
-## edit below with email addresses from your life
-test_email <- mime(
-  To = "bob.taylor@nhs.net",
-  From = "j.boaby@gmail.com",
-  Subject = "this is just another gmailr test",
-  body = "Wondering if this will work properly with the config files...")
+email <- mime(From="j.boaby@gmail.com",
+           To="bob.taylor@nhs.net",
+           Subject="HTML test") %>%
+  html_body("<b>Test</b> <em>Message</em> <h3>again</h3>")
 
-send_message(test_email)
+
+send_message(email)
