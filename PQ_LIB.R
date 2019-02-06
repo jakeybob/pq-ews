@@ -267,23 +267,30 @@ current <- compare_scrape()
 
 
 PQs_to_send <- current %>%
-  filter(PQID == "S5W-21474")
+  filter(PQID %in% c("S5W-21474", "S5W-21450"))
 
-message <- character()
+text_date_format <- "%A %d %B %Y"
+
+message <- "<style>
+body{background-color:powderblue;}
+h2{color:blue;}
+p{color:red;}
+</style>" # inline css
+
 for(PQref in PQs_to_send$PQID){
   PQ <- filter(PQs_to_send, PQs_to_send$PQID==PQref)
   
   text_PQID <- paste0("<h2>", PQref,"</h2>")
-  text_expected_date <- paste0("<strong>", PQ$expected_answer_date, "</strong>")
-  text_date <- paste0("<strong>", PQ$date, "</strong>")
+  text_expected_date <- paste0("Expected answer date: ", "<strong>", format(PQ$expected_answer_date, text_date_format), "</strong>")
+  text_date <- paste0("Submitted: ", "<strong>", format(PQ$date, text_date_format), "</strong>")
   text_MSP_details <- paste0("<body>", 
                              PQ$MSPname, ", ", 
                              PQ$area, ", ",
                              PQ$party, "</body>")
   text_question <- paste0(PQ$question_text)
   
-  message <- paste0(message, "<p>", text_PQID, text_expected_date, "<br>", text_date, "<br>", text_MSP_details, 
-                    text_question, "</p><hr><br><br>")
+  message <- paste0(message, "<p>", text_PQID, text_expected_date, "<br>", text_date, "<br><br>", text_MSP_details, 
+                    "<br><br>", text_question, "</p><hr><br><br>")
 }
 
-send_email(subject="test", message = message)
+send_email(message = message, subject=paste("New PQs |", format(now(), "%h %d %Y %H:%M")))
