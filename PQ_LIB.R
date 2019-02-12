@@ -259,11 +259,11 @@ send_email <- function(message, from=default_email_from, to=default_email_to, su
 
 
 #### CODE ####
-# generate_archive_opendata()
+# generate_archive_opendata(start_year = 2011, save = TRUE) # use open API to generate historical archive
 # df <- generate_archive_scrape(num_results = 1000, save=TRUE)
 # currentPQ_IDs <- generate_archive_webscrape(num_results=10, save=FALSE)$PQID
 
-current <- compare_scrape()
+current <- compare_scrape(update_recent = TRUE)
 
 PQs_to_send <- current %>%
   filter(PQID %in% c("S5W-21474", "S5W-21450"))
