@@ -241,7 +241,11 @@ compare_scrape <- function(num_results = 100, update_recent = FALSE, ...){
     generate_archive_scrape(save=TRUE)
   }
   
-  return(currentPQs_df)
+  newPQs_df <- currentPQs_df %>%
+    filter(PQID %in% new_PQ_IDs)
+  
+  
+  return(newPQs_df)
 
 }
 
@@ -257,20 +261,10 @@ send_email <- function(message, from=default_email_from, to=default_email_to, su
   send_message(email)
 }
 
-
-#### CODE ####
-# generate_archive_opendata(start_year = 2011, save = TRUE) # use open API to generate historical archive
-# df <- generate_archive_scrape(num_results = 1000, save=TRUE)
-# currentPQ_IDs <- generate_archive_webscrape(num_results=10, save=FALSE)$PQID
-
-current <- compare_scrape(update_recent = TRUE)
-
-PQs_to_send <- current %>%
-  filter(PQID %in% c("S5W-21474", "S5W-21450"))
-
-text_date_format <- "%A %d %B %Y"
-
-message <- "<style>
+send_PQ_email <- function(newPQs, ...){
+  text_date_format <- "%A %d %B %Y"
+  
+  message <- "<style>
   body{background-color:#fefefe;
 font-family: Helvetica, Arial, sans-serif;
 color:#333}
@@ -293,25 +287,47 @@ border-color: #999;
 border-radius: 10px;}
 span.MSPdetails{font-size: 0.7em}
 </style>" # inline css
-
-for(PQref in PQs_to_send$PQID){
-  PQ <- filter(PQs_to_send, PQs_to_send$PQID==PQref)
   
-  text_PQID <- paste0("<h3>", PQref,"</h3>")
-  text_expected_date <- paste0("Answer expected: ", "<strong>", format(PQ$expected_answer_date, text_date_format), "</strong>")
-  text_date <- paste0("Submitted: ", "<strong>", format(PQ$date, text_date_format), "</strong>")
-  text_MSP_details <- paste0("<strong>",
-                            PQ$MSPname, "</strong> <br><span class=\"MSPdetails\">",
-                             PQ$area, ", ",
-                             PQ$party, "</span>")
-  text_question <- paste0("<em>", PQ$question_text, "</em>")
-
-  message <- paste0(message,
-                    "<div class=\"PQ\">", text_PQID,
-                    "<div class=\"dates\">", text_expected_date, "<br>", text_date, "<br></div>",
-                    "<div class=\"MSPinfo\"><br>", text_MSP_details, "<br><br></div>",
-                    text_question, "<br><br></div>")
+  for(PQref in newPQs$PQID){
+    PQ <- filter(newPQs, newPQs$PQID==PQref)
+    
+    text_PQID <- paste0("<h3>", PQref,"</h3>")
+    text_expected_date <- paste0("Answer expected: ", "<strong>", format(PQ$expected_answer_date, text_date_format), "</strong>")
+    text_date <- paste0("Submitted: ", "<strong>", format(PQ$date, text_date_format), "</strong>")
+    text_MSP_details <- paste0("<strong>",
+                               PQ$MSPname, "</strong> <br><span class=\"MSPdetails\">",
+                               PQ$area, ", ",
+                               PQ$party, "</span>")
+    text_question <- paste0("<em>", PQ$question_text, "</em>")
+    
+    message <- paste0(message,
+                      "<div class=\"PQ\">", text_PQID,
+                      "<div class=\"dates\">", text_expected_date, "<br>", text_date, "<br></div>",
+                      "<div class=\"MSPinfo\"><br>", text_MSP_details, "<br><br></div>",
+                      text_question, "<br><br></div>")
+    
+  }
+  
+  send_email(message = message, subject=paste("New PQs |", format(now(), "%h %d %Y %H:%M")))
+  
   
 }
 
-send_email(message = message, subject=paste("New PQs |", format(now(), "%h %d %Y %H:%M")))
+
+#### CODE ####
+# generate_archive_opendata(start_year = 2011, save = TRUE) # use open API to generate historical archive
+# df <- generate_archive_scrape(num_results = 1000, save=TRUE)
+# currentPQ_IDs <- generate_archive_webscrape(num_results=10, save=FALSE)$PQID
+
+test_df <- generate_archive_scrape(num_results = 5, save = FALSE)
+send_PQ_email(test_df)
+
+# newPQs <- compare_scrape(update_recent = FALSE)
+# if(dim(newPQs)[1] > 0){
+#   send_PQ_email(newPQs)
+# }
+
+# cronR::cron_add("R CMD BATCH /home/bob/pq-ews/PQ_LIB.R", 
+#                 frequency = "hourly",
+#                 days_of_week = c(1, 2, 3, 4, 5))
+

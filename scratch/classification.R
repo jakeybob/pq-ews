@@ -106,6 +106,7 @@ library(stringr)
 library(caret)
 library(tm)
 library(RTextTools)
+library(randomForest)
 
 set.seed(1234)
 theme_set(theme_minimal())
@@ -158,8 +159,11 @@ plot_congress %>%
   facet_wrap(~major, scales = "free") +
   coord_flip()
 
-congress_rf <- train(x = as.matrix(congress_dtm),
-                     y = factor(congress$major),
-                     method = "rf",
-                     ntree = 200,
-                     trControl = trainControl(method = "oob"))
+# ~300 secs on linode, ~230s on windows laptop -- won't run on NSS server as R = v3.2
+
+congress_rf_200 <- train(x = as.matrix(congress_dtm),
+                       y = factor(congress$major),
+                       method = "rf",
+                       ntree = 200,
+                       trControl = trainControl(method = "oob"))
+

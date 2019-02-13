@@ -7,3 +7,4 @@ packrat/lib*/
 pq-ews.Rproj # server version
 pq-ews.json
 .httr-oauth
+*.Rout
