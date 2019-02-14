@@ -5,6 +5,8 @@ library(rvest)
 library(xml2)
 library(gmailr)
 
+setwd("/home/bob/pq-ews")
+
 default_email_from <- "j.boaby@gmail.com"
 default_email_to <- "bob.taylor@nhs.net"
 
@@ -251,7 +253,7 @@ compare_scrape <- function(num_results = 100, update_recent = FALSE, ...){
 
 send_email <- function(message, from=default_email_from, to=default_email_to, subject="",...){
   
-  use_secret_file("pq-ews.json")
+  use_secret_file(file.path(getwd(), "pq-ews.json"))
   
   email <- mime(From = from,
                 To = to,
@@ -319,15 +321,17 @@ span.MSPdetails{font-size: 0.7em}
 # df <- generate_archive_scrape(num_results = 1000, save=TRUE)
 # currentPQ_IDs <- generate_archive_webscrape(num_results=10, save=FALSE)$PQID
 
-test_df <- generate_archive_scrape(num_results = 5, save = FALSE)
-send_PQ_email(test_df)
+# test_df <- generate_archive_scrape(num_results = 5, save = FALSE)
+# send_PQ_email(test_df)
 
-# newPQs <- compare_scrape(update_recent = FALSE)
-# if(dim(newPQs)[1] > 0){
-#   send_PQ_email(newPQs)
-# }
+newPQs <- compare_scrape(update_recent = TRUE)
+if(dim(newPQs)[1] > 0){
+  send_PQ_email(newPQs)
+}
 
-# cronR::cron_add("R CMD BATCH /home/bob/pq-ews/PQ_LIB.R", 
-#                 frequency = "hourly",
-#                 days_of_week = c(1, 2, 3, 4, 5))
 
+# cmd <- cronR::cron_rscript("/home/bob/pq-ews/PQ_LIB.R", log_append = FALSE)
+# cronR::cron_add(command = cmd, frequency = "hourly", id="PQjob", days_of_week = c(1, 2, 3, 4, 5))
+# # Possible fixes for cron issues...
+# # Run "sudo service cron restart", and "chmod u+x whatever.R" as well...
+# # Add root and username to /etc/cron.allow
