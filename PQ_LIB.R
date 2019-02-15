@@ -232,10 +232,10 @@ compare_scrape <- function(num_results = 100, update_recent = FALSE, ...){
   new_PQ_IDs <- currentPQ_IDs[which(!(currentPQ_IDs %in% recentPQ_IDs))]
   
   if(length(new_PQ_IDs) == 0){
-    print("No new PQs since last refresh.")
+    print(paste(now(), ": no new PQs since last refresh."))
   }
   else{
-    print(paste("New PQs are:", toString(new_PQ_IDs)))
+    print(paste(now(), ": new PQs are:", toString(new_PQ_IDs)))
   }
   
   

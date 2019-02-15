@@ -9,3 +9,5 @@ pq-ews.json
 .httr-oauth
 *.Rout
 *.log
+scratch/Test/
+scratch/Training/
