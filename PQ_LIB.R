@@ -8,7 +8,9 @@ library(gmailr)
 setwd("/home/bob/pq-ews")
 
 default_email_from <- "j.boaby@gmail.com"
-default_email_to <- c("bob.taylor@nhs.net")
+default_email_to <- c("bob.taylor@nhs.net",
+                      "sandra.storrie@nhs.net")
+# default_email_to <- default_email_to[1]
 
 generate_archive_opendata <- function(start_year=2017, save=TRUE, ...){
   
@@ -243,8 +245,14 @@ compare_scrape <- function(num_results = 100, update_recent = FALSE, ...){
     generate_archive_scrape(save=TRUE)
   }
   
+  
+  flag_strings <- c("NHS", "health", "hospital")
+  
   newPQs_df <- currentPQs_df %>%
-    filter(PQID %in% new_PQ_IDs)
+    filter(PQID %in% new_PQ_IDs) %>%
+    mutate(flag = str_detect(str_to_upper(question_text), 
+                             paste(str_to_upper(flag_strings), collapse = "|"))) %>%
+    arrange(-flag, PQID)
   
   
   return(newPQs_df)
@@ -290,6 +298,17 @@ border-style:solid;
 border-width:3px;
 border-color: #999;
 border-radius: 10px;}
+div.PQ-flagged{margin-bottom: 2em;
+margin-right: 0.5em;
+margin-left: 0.5em;
+padding-top: 0.5em;
+padding-bottom: 0.5em;
+padding-right: 1em;
+padding-left: 1em;
+border-style:solid;
+border-width:3px;
+border-color: #ff2222;
+border-radius: 10px;}
 span.MSPdetails{font-size: 0.7em}
 </style>" # inline css
   
@@ -305,11 +324,21 @@ span.MSPdetails{font-size: 0.7em}
                                PQ$party, "</span>")
     text_question <- paste0("<em>", PQ$question_text, "</em>")
     
-    message <- paste0(message,
-                      "<div class=\"PQ\">", text_PQID,
-                      "<div class=\"dates\">", text_expected_date, "<br>", text_date, "<br></div>",
-                      "<div class=\"MSPinfo\"><br>", text_MSP_details, "<br><br></div>",
-                      text_question, "<br><br></div>")
+    if(PQ$flag == FALSE){
+      message <- paste0(message,
+                        "<div class=\"PQ\">", text_PQID,
+                        "<div class=\"dates\">", text_expected_date, "<br>", text_date, "<br></div>",
+                        "<div class=\"MSPinfo\"><br>", text_MSP_details, "<br><br></div>",
+                        text_question, "<br><br></div>")
+    }
+    if(PQ$flag == TRUE){
+      message <- paste0(message,
+                        "<div class=\"PQ-flagged\">", text_PQID,
+                        "<div class=\"dates\">", text_expected_date, "<br>", text_date, "<br></div>",
+                        "<div class=\"MSPinfo\"><br>", text_MSP_details, "<br><br></div>",
+                        text_question, "<br><br></div>")
+    }
+
     
   }
   
@@ -331,7 +360,6 @@ newPQs <- compare_scrape(update_recent = TRUE)
 if(dim(newPQs)[1] > 0){
   send_PQ_email(newPQs)
 }
-
 
 # cmd <- cronR::cron_rscript("/home/bob/pq-ews/PQ_LIB.R", log_append = FALSE)
 # cronR::cron_add(command = cmd, frequency = "hourly", id="PQjob", days_of_week = c(1, 2, 3, 4, 5))
