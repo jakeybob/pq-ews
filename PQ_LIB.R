@@ -8,7 +8,7 @@ library(gmailr)
 setwd("/home/bob/pq-ews")
 
 default_email_from <- "j.boaby@gmail.com"
-default_email_to <- "bob.taylor@nhs.net"
+default_email_to <- c("bob.taylor@nhs.net")
 
 generate_archive_opendata <- function(start_year=2017, save=TRUE, ...){
   
@@ -255,12 +255,15 @@ send_email <- function(message, from=default_email_from, to=default_email_to, su
   
   use_secret_file(file.path(getwd(), "pq-ews.json"))
   
-  email <- mime(From = from,
-                To = to,
-                Subject = subject) %>%
-    html_body(message)
-
-  send_message(email)
+  # clunky hack to send emails to multiple recipients. Must be a better gmailr method...
+  for(address in default_email_to){
+    email <- mime(From = from,
+                  To = address,
+                  Subject = subject) %>%
+      html_body(message)
+    
+    send_message(email)
+  }
 }
 
 send_PQ_email <- function(newPQs, ...){
