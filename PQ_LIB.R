@@ -273,7 +273,8 @@ send_email <- function(message, from=default_email_from, to=default_email_to, su
 send_PQ_email <- function(newPQs, log=FALSE, ...){
   
   # flag PQs with certain keywords
-  flag_strings <- c("NHS", "health", "hospital")
+  flag_strings <- c("NHS", "health", "hospital", "disease", "condition", "procedure", "surgery", "surgical",
+                    "operation", "diagnos")
   newPQs <- newPQs %>%
     mutate(flag = str_detect(str_to_upper(question_text),
                              paste(str_to_upper(flag_strings), collapse = "|"))) %>%
