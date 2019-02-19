@@ -11,3 +11,4 @@ pq-ews.json
 *.log
 scratch/Test/
 scratch/Training/
+*.html

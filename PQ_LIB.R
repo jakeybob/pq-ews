@@ -249,11 +249,7 @@ compare_scrape <- function(num_results = 100, update_recent = FALSE, ...){
   flag_strings <- c("NHS", "health", "hospital")
   
   newPQs_df <- currentPQs_df %>%
-    filter(PQID %in% new_PQ_IDs) %>%
-    mutate(flag = str_detect(str_to_upper(question_text), 
-                             paste(str_to_upper(flag_strings), collapse = "|"))) %>%
-    arrange(-flag, PQID)
-  
+    filter(PQID %in% new_PQ_IDs)
   
   return(newPQs_df)
 
@@ -274,43 +270,52 @@ send_email <- function(message, from=default_email_from, to=default_email_to, su
   }
 }
 
-send_PQ_email <- function(newPQs, ...){
+send_PQ_email <- function(newPQs, log=FALSE, ...){
+  
+  # flag PQs with certain keywords
+  flag_strings <- c("NHS", "health", "hospital")
+  newPQs <- newPQs %>%
+    mutate(flag = str_detect(str_to_upper(question_text),
+                             paste(str_to_upper(flag_strings), collapse = "|"))) %>%
+    arrange(-flag, PQID)
+  
+  
   text_date_format <- "%A %d %B %Y"
   
   message <- "<style>
   body{background-color:#fefefe;
-font-family: Helvetica, Arial, sans-serif;
-color:#333}
-h3{font-size:1.2em;
-color:#333333;
-font-family: Helvetica, Arial, sans-serif;
-line-height:1em;}
-div.dates{line-height:1.3;}
-div.MSPinfo{line-height:1.3;}
-div.PQ{margin-bottom: 2em;
-margin-right: 0.5em;
-margin-left: 0.5em;
-padding-top: 0.5em;
-padding-bottom: 0.5em;
-padding-right: 1em;
-padding-left: 1em;
-border-style:solid;
-border-width:3px;
-border-color: #999;
-border-radius: 10px;}
-div.PQ-flagged{margin-bottom: 2em;
-margin-right: 0.5em;
-margin-left: 0.5em;
-padding-top: 0.5em;
-padding-bottom: 0.5em;
-padding-right: 1em;
-padding-left: 1em;
-border-style:solid;
-border-width:3px;
-border-color: #ff2222;
-border-radius: 10px;}
-span.MSPdetails{font-size: 0.7em}
-</style>" # inline css
+  font-family: Helvetica, Arial, sans-serif;
+  color:#333}
+  h3{font-size:1.2em;
+  color:#333333;
+  font-family: Helvetica, Arial, sans-serif;
+  line-height:1em;}
+  div.dates{line-height:1.3;}
+  div.MSPinfo{line-height:1.3;}
+  div.PQ{margin-bottom: 2em;
+  margin-right: 0.5em;
+  margin-left: 0.5em;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  padding-right: 1em;
+  padding-left: 1em;
+  border-style:solid;
+  border-width:3px;
+  border-color: #999;
+  border-radius: 10px;}
+  div.PQ-flagged{margin-bottom: 2em;
+  margin-right: 0.5em;
+  margin-left: 0.5em;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  padding-right: 1em;
+  padding-left: 1em;
+  border-style:solid;
+  border-width:3px;
+  border-color: #ff2222;
+  border-radius: 10px;}
+  span.MSPdetails{font-size: 0.7em}
+  </style>" # inline css
   
   for(PQref in newPQs$PQID){
     PQ <- filter(newPQs, newPQs$PQID==PQref)
@@ -338,13 +343,21 @@ span.MSPdetails{font-size: 0.7em}
                         "<div class=\"MSPinfo\"><br>", text_MSP_details, "<br><br></div>",
                         text_question, "<br><br></div>")
     }
-
+    
     
   }
   
   send_email(message = message, subject=paste("New PQs |", format(now(), "%h %d %Y %H:%M")))
   
-  
+  if(log==TRUE){
+    # logs for debugging
+    saveRDS(newPQs, "newestPQs.rds")
+    fileConn<-file("newestPQs.html")
+    writeLines(message, fileConn)
+    close(fileConn)
+    
+  }
+
 }
 
 
@@ -358,7 +371,7 @@ span.MSPdetails{font-size: 0.7em}
 
 newPQs <- compare_scrape(update_recent = TRUE)
 if(dim(newPQs)[1] > 0){
-  send_PQ_email(newPQs)
+  send_PQ_email(newPQs, log=TRUE)
 }
 
 # cmd <- cronR::cron_rscript("/home/bob/pq-ews/PQ_LIB.R", log_append = FALSE)
