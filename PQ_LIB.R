@@ -5,13 +5,6 @@ library(rvest)
 library(xml2)
 library(gmailr)
 
-setwd("/home/bob/pq-ews")
-
-default_email_from <- "j.boaby@gmail.com"
-default_email_to <- c("bob.taylor@nhs.net",
-                      "sandra.storrie@nhs.net")
-default_email_to <- default_email_to[1]
-
 generate_archive_opendata <- function(start_year=2017, save=TRUE, ...){
   
   current_year <- as.integer(format(Sys.time(), "%Y"))
@@ -29,7 +22,7 @@ generate_archive_opendata <- function(start_year=2017, save=TRUE, ...){
 
   current_year_PQ_IDs <- dplyr::as_tibble(jsonlite::fromJSON(txt=url(PQ_urls[length(PQ_urls)]), simplifyDataFrame = TRUE))$EventID
   if(save==TRUE){
-    saveRDS(current_year_PQ_IDs, "recentPQ_IDs.rds")
+    saveRDS(current_year_PQ_IDs, "data/recentPQ_IDs.rds")
   }
   
   PQ_data <- dplyr::tibble()
@@ -111,7 +104,7 @@ generate_archive_opendata <- function(start_year=2017, save=TRUE, ...){
     arrange(ApprovedDate)
   
   if(save==TRUE){
-    saveRDS(df, "opendata_archive.rds")}
+    saveRDS(df, "data/opendata_archive.rds")}
   
   return(df)
 }
@@ -120,7 +113,7 @@ compare_opendata <- function(){
   url <- paste0("https://data.parliament.scot/api/motionsquestionsanswersquestions?year=", as.integer(format(Sys.time(), "%Y")))
   currentPQ_IDs <- dplyr::as_tibble(jsonlite::fromJSON(txt=url(url), simplifyDataFrame = TRUE))$EventID
   
-  recentPQ_IDs <- read_rds("recentPQ_IDs.rds")
+  recentPQ_IDs <- read_rds("data/recentPQ_IDs.rds")
   
   new_PQ_IDs <- currentPQ_IDs[which(!(currentPQ_IDs %in% recentPQ_IDs))]
   
@@ -131,12 +124,12 @@ compare_opendata <- function(){
 
 train <- function(save=TRUE){
   # read in list of PQs completed by team (drop rows that are blank or NA)
-  completed_PQs <- readr::read_delim(file="QI_PQs.txt", delim="\r", col_names="PQ", col_type="c")  %>%
+  completed_PQs <- readr::read_delim(file="data/QI_PQs.txt", delim="\r", col_names="PQ", col_type="c")  %>%
     filter(PQ != "" & !is.na(PQ))
   completed_PQs$team <- "QI"  #  append team name
   
   if(save==TRUE){
-    saveRDS(completed_PQs, "train.rds")}
+    saveRDS(completed_PQs, "data/train.rds")}
   
   return(completed_PQs)
 }
@@ -220,7 +213,7 @@ generate_archive_scrape <- function(num_results=1000, save=TRUE, ...){
     filter(str_detect(question_text, "Question to be taken in chamber")==FALSE)
   
   if(save==TRUE){
-    saveRDS(df, "scrape_archive.rds")}
+    saveRDS(df, "data/scrape_archive.rds")}
   
   return(df)
   
@@ -232,7 +225,7 @@ compare_scrape <- function(num_results = 100, update_recent = FALSE, ...){
 
   currentPQ_IDs <- currentPQs_df$PQID
   
-  recentPQ_IDs <- read_rds("scrape_archive.rds")$PQID
+  recentPQ_IDs <- read_rds("data/scrape_archive.rds")$PQID
   
   new_PQ_IDs <- currentPQ_IDs[which(!(currentPQ_IDs %in% recentPQ_IDs))]
   
@@ -355,31 +348,11 @@ send_PQ_email <- function(newPQs, log=FALSE, ...){
   
   if(log==TRUE){
     # logs for debugging
-    saveRDS(newPQs, "newestPQs.rds")
-    fileConn<-file("newestPQs.html")
+    saveRDS(newPQs, "logs/newestPQs.rds")
+    fileConn<-file("logs/newestPQs.html")
     writeLines(message, fileConn)
     close(fileConn)
     
   }
 
 }
-
-
-#### CODE ####
-# generate_archive_opendata(start_year = 2011, save = TRUE) # use open API to generate historical archive
-# df <- generate_archive_scrape(num_results = 1000, save=TRUE)
-# currentPQ_IDs <- generate_archive_webscrape(num_results=10, save=FALSE)$PQID
-
-# test_df <- generate_archive_scrape(num_results = 5, save = FALSE)
-# send_PQ_email(test_df)
-
-newPQs <- compare_scrape(update_recent = TRUE)
-if(dim(newPQs)[1] > 0){
-  send_PQ_email(newPQs, log=TRUE)
-}
-
-# cmd <- cronR::cron_rscript("/home/bob/pq-ews/PQ_LIB.R", log_append = FALSE)
-# cronR::cron_add(command = cmd, frequency = "hourly", id="PQjob", days_of_week = c(1, 2, 3, 4, 5))
-# # Possible fixes for cron issues...
-# # Run "sudo service cron restart", and "chmod u+x whatever.R" as well...
-# # Add root and username to /etc/cron.allow
