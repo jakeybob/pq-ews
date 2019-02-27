@@ -10,7 +10,7 @@ setwd("/home/bob/pq-ews")
 default_email_from <- "j.boaby@gmail.com"
 default_email_to <- c("bob.taylor@nhs.net",
                       "sandra.storrie@nhs.net")
-# default_email_to <- default_email_to[1]
+default_email_to <- default_email_to[1]
 
 generate_archive_opendata <- function(start_year=2017, save=TRUE, ...){
   
@@ -175,10 +175,12 @@ generate_archive_scrape <- function(num_results=1000, save=TRUE, ...){
   current_status_df <- tibble(searchID = current_status_IDs, current_status_text = current_status_text)
   
   # if "expected answer date" string detected, extract expected answer date and convert to date
-  current_status_df$expected_answer_date <- if_else(str_detect(str_to_upper(current_status_df$current_status_text), "EXPECTED ANSWER DATE"),
-                                                    str_extract(str_to_upper(current_status_df$current_status_text), "(?<=EXPECTED ANSWER DATE ).*$"),
-                                                    "")
-  current_status_df$expected_answer_date <- dmy(current_status_df$expected_answer_date)
+  # current_status_df$expected_answer_date <- if_else(str_detect(str_to_upper(current_status_df$current_status_text), "EXPECTED ANSWER DATE"),
+  #                                                   str_extract(str_to_upper(current_status_df$current_status_text), "(?<=EXPECTED ANSWER DATE ).*$"),
+  #                                                   "")
+  # current_status_df$expected_answer_date <- dmy(current_status_df$expected_answer_date)
+  
+  current_status_df$expected_answer_date <- dmy(current_status_df$current_status_text) # lubridate happily picks out the date on it's own...
   
   
   #### QUESTION DETAILS ####
@@ -195,7 +197,8 @@ generate_archive_scrape <- function(num_results=1000, save=TRUE, ...){
                                 area = question_details_text[,2],
                                 party = question_details_text[,3],
                                 date = dmy(question_details_text[,4]),
-                                question_details_text = html_text(question_details))
+                                question_details_text = html_text(question_details)) %>%
+    filter(str_detect(str_to_upper(MSPname), "WITHDRAWN") == FALSE)  #  remove withdrawn questions
   
   
   #### QUESTION TEXT ####
@@ -273,7 +276,7 @@ send_email <- function(message, from=default_email_from, to=default_email_to, su
 send_PQ_email <- function(newPQs, log=FALSE, ...){
   
   # flag PQs with certain keywords
-  flag_strings <- c("NHS", "health", "hospital", "disease", "condition", "procedure", "surgery", "surgical",
+  flag_strings <- c("NHS", "health", "hospital", "disease", "condition ", "conditions", "procedure", "surgery", "surgical",
                     "operations", "operation ", "diagnos", "inpatient", "outpatient")
   newPQs <- newPQs %>%
     mutate(flag = str_detect(str_to_upper(question_text),
