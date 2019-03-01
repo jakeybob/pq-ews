@@ -344,7 +344,12 @@ send_PQ_email <- function(newPQs, log=FALSE, ...){
     
   }
   
-  send_email(message = message, subject=paste("New PQs |", format(now(), "%h %d %Y %H:%M")))
+  subject <- paste0("New PQs | ", 
+                    format(now(), "%h %d %Y "), 
+                    as.character(as.integer(format(now(), "%I"))), 
+                    str_to_lower(format(now(), "%p")))
+  
+  send_email(message = message, subject = subject)
   
   if(log==TRUE){
     # logs for debugging
