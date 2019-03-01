@@ -2,7 +2,6 @@ library(tidyverse)
 library(jsonlite)
 library(lubridate)
 library(rvest)
-library(xml2)
 library(gmailr)
 
 generate_archive_opendata <- function(start_year=2017, save=TRUE, ...){
