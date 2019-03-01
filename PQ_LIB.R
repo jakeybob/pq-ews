@@ -229,20 +229,19 @@ compare_scrape <- function(num_results = 100, update_recent = FALSE, ...){
   
   new_PQ_IDs <- currentPQ_IDs[which(!(currentPQ_IDs %in% recentPQ_IDs))]
   
+  
+  # if no new PQs, do nothing. Else, print PQ IDs to log and refresh the archive
   if(length(new_PQ_IDs) == 0){
     print(paste(now(), ": no new PQs since last refresh."))
   }
   else{
     print(paste(now(), ": new PQs are:", toString(new_PQ_IDs)))
+    
+    if(update_recent==TRUE){
+      generate_archive_scrape(save=TRUE)
+      print(paste(now(), ": new archive of recent PQs generated via scrape."))
+    }
   }
-  
-  
-  if(update_recent==TRUE){
-    generate_archive_scrape(save=TRUE)
-  }
-  
-  
-  flag_strings <- c("NHS", "health", "hospital")
   
   newPQs_df <- currentPQs_df %>%
     filter(PQID %in% new_PQ_IDs)
