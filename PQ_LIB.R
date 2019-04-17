@@ -121,17 +121,17 @@ compare_opendata <- function(){
   #   filter()  #  can't do a==b comparison as a will be longer than b
 }
 
-train <- function(save=TRUE){
-  # read in list of PQs completed by team (drop rows that are blank or NA)
-  completed_PQs <- readr::read_delim(file="data/QI_PQs.txt", delim="\r", col_names="PQ", col_type="c")  %>%
-    filter(PQ != "" & !is.na(PQ))
-  completed_PQs$team <- "QI"  #  append team name
-  
-  if(save==TRUE){
-    saveRDS(completed_PQs, "data/train.rds")}
-  
-  return(completed_PQs)
-}
+# train <- function(save=TRUE){
+#   # read in list of PQs completed by team (drop rows that are blank or NA)
+#   completed_PQs <- readr::read_delim(file="data/QI_PQs.txt", delim="\r", col_names="PQ", col_type="c")  %>%
+#     filter(PQ != "" & !is.na(PQ))
+#   completed_PQs$team <- "QI"  #  append team name
+#   
+#   if(save==TRUE){
+#     saveRDS(completed_PQs, "data/train.rds")}
+#   
+#   return(completed_PQs)
+# }
 
 generate_archive_scrape <- function(num_results=1000, save=TRUE, ...){
   # NOTE: this method does not seem to return all data from past PQs!
@@ -154,7 +154,7 @@ generate_archive_scrape <- function(num_results=1000, save=TRUE, ...){
   
   regex_ID_selector <- "(?<=\\_ctl00\\_ctl)(.*?)(?=\\_\\_)" # to pull out a unique ID for each search result
   
-  tempFileName <- paste0(".tmp", paste0(sample(1e10, 1)))
+  tempFileName <- tempfile(pattern = "pqews_", fileext = ".tmp")
   download.file(url, destfile = tempFileName, quiet=TRUE) # necessary to avoid proxy issues
   webpage <- read_html(tempFileName)
   file.remove(tempFileName)
