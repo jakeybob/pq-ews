@@ -121,18 +121,6 @@ compare_opendata <- function(){
   #   filter()  #  can't do a==b comparison as a will be longer than b
 }
 
-# train <- function(save=TRUE){
-#   # read in list of PQs completed by team (drop rows that are blank or NA)
-#   completed_PQs <- readr::read_delim(file="data/QI_PQs.txt", delim="\r", col_names="PQ", col_type="c")  %>%
-#     filter(PQ != "" & !is.na(PQ))
-#   completed_PQs$team <- "QI"  #  append team name
-#   
-#   if(save==TRUE){
-#     saveRDS(completed_PQs, "data/train.rds")}
-#   
-#   return(completed_PQs)
-# }
-
 generate_archive_scrape <- function(num_results=1000, save=TRUE, ...){
   # NOTE: this method does not seem to return all data from past PQs!
   # e.g. setting num_results = 10000 shows that previous years drop sharply in the return data....
@@ -359,5 +347,3 @@ send_PQ_email <- function(newPQs, log=FALSE, ...){
   }
 
 }
-
-# test
