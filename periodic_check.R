@@ -2,7 +2,7 @@ setwd("/home/bob/pq-ews")
 source("PQ_LIB.R")
 
 #### SETTINGS ####
-default_email_from <- "j.boaby@gmail.com"
+default_email_from <- "'PQ Update' <j.boaby@gmail.com>"
 default_email_to <- c("bob.taylor@nhs.net")
 
 
