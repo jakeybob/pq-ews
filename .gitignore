@@ -13,3 +13,4 @@ scratch/Test/
 scratch/Training/
 *.html
 packrat/src/
+email_addresses.json

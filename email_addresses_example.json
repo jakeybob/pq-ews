@@ -1,0 +1,9 @@
+{
+  "from": "Some Body <a.person@example.com>",
+  
+  "to": [
+    "joe.bloggs@thing.net",
+    "jane.doe@blargh.com"
+  ]
+  
+}
