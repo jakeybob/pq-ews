@@ -3,8 +3,6 @@ source("PQ_LIB.R")
 
 #### SETTINGS ####
 email_addresses <- read_json("email_addresses.json") # see email_addresses_example.json for example format for this file
-# default_email_from <- "'PQ Update' <j.boaby@gmail.com>"
-# default_email_to <- c("bob.taylor@nhs.net", "bobajob45@hotmail.com")
 default_email_from <- email_addresses$from
 default_email_to <- email_addresses$to
 
